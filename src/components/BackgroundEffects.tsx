@@ -43,6 +43,7 @@ const CloudItem = memo(({
 }) => {
   const divRef = useRef<HTMLDivElement>(null)
   const flyingOutRef = useRef(false)
+  const removeTimerRef = useRef<number | null>(null)
 
   const handleDoubleClick = useCallback(() => {
     if (flyingOutRef.current || !divRef.current) return
@@ -67,7 +68,7 @@ const CloudItem = memo(({
       el.style.opacity = '0'
     })
 
-    setTimeout(() => onComplete(cloud.id), 500)
+    removeTimerRef.current = window.setTimeout(() => onComplete(cloud.id), 500)
   }, [cloud.id, onComplete])
 
   const handleAnimationEnd = useCallback(() => {
@@ -75,6 +76,12 @@ const CloudItem = memo(({
       onComplete(cloud.id)
     }
   }, [cloud.id, onComplete])
+
+  useEffect(() => {
+    return () => {
+      if (removeTimerRef.current != null) window.clearTimeout(removeTimerRef.current)
+    }
+  }, [])
 
   return (
     <div
@@ -212,41 +219,55 @@ export const BackgroundEffects = () => {
 
   // 云朵生成
   useEffect(() => {
+    const timeouts: number[] = []
+
     if (isDark) {
       setClouds([])
       cloudsRef.current = []
-      return
+      return () => {
+        timeouts.forEach((t) => window.clearTimeout(t))
+      }
     }
 
     for (let i = 0; i < 3; i++) {
-      setTimeout(addCloud, i * 1200)
+      timeouts.push(window.setTimeout(addCloud, i * 1200))
     }
 
-    const interval = setInterval(addCloud, 2500)
-    return () => clearInterval(interval)
+    const interval = window.setInterval(addCloud, 2500)
+    return () => {
+      timeouts.forEach((t) => window.clearTimeout(t))
+      window.clearInterval(interval)
+    }
   }, [isDark, addCloud])
 
   // 繁星生成
   useEffect(() => {
+    const timeouts: number[] = []
+
     if (!isDark) {
       setStars([])
       starsRef.current = []
-      return
+      return () => {
+        timeouts.forEach((t) => window.clearTimeout(t))
+      }
     }
 
     // 初始繁星
     for (let i = 0; i < 8; i++) {
-      setTimeout(addStar, i * 200)
+      timeouts.push(window.setTimeout(addStar, i * 200))
     }
 
     // 持续添加繁星，控制同时数量8-20
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       if (starsRef.current.length < 20 && Math.random() > 0.3) {
         addStar()
       }
     }, 400)
 
-    return () => clearInterval(interval)
+    return () => {
+      timeouts.forEach((t) => window.clearTimeout(t))
+      window.clearInterval(interval)
+    }
   }, [isDark, addStar])
 
   return (

@@ -35,41 +35,51 @@ const variants = {
 }
 
 export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCardProps) => {
-  const [currentTime, setCurrentTime] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [lyricsOffsetY, setLyricsOffsetY] = useState(0)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const [displayTimeMs, setDisplayTimeMs] = useState(0)
   const dragAxisRef = useRef<'x' | 'y' | null>(null)
   const lyricsViewportRef = useRef<HTMLDivElement>(null)
   const lineRefs = useRef<Array<HTMLDivElement | null>>([])
   const lyricsOffsetYRef = useRef(0)
+  const activeIndexRef = useRef(-1)
+  const displayedSecondRef = useRef(-1)
   const startTimeRef = useRef(Date.now())
   const currentTimeRef = useRef(0)
   const isPresent = useIsPresent()
 
   const lrc = useMemo(() => parseLrc(song.lyricRaw), [song.lyricRaw])
   const durationMs = (song.durationSec || 300) * 1000
-  const activeIndex = findLineIndex(lrc.lines, currentTime)
   const scrollIndex = lrc.lines.length === 0 ? -1 : Math.max(0, activeIndex)
 
-  useEffect(() => {
-    currentTimeRef.current = currentTime
-  }, [currentTime])
+  const updateActiveIndex = useCallback((next: number) => {
+    if (next === activeIndexRef.current) return
+    activeIndexRef.current = next
+    setActiveIndex(next)
+  }, [])
+
+  const updateDisplayTime = useCallback((nextMs: number) => {
+    const nextSecond = Math.floor(nextMs / 1000)
+    if (nextSecond === displayedSecondRef.current) return
+    displayedSecondRef.current = nextSecond
+    setDisplayTimeMs(nextMs)
+  }, [])
 
   useEffect(() => {
     if (!isPresent || isDragging) return
     let rafId: number
     const tick = () => {
-      const elapsed = Date.now() - startTimeRef.current
-      if (elapsed < durationMs) {
-        setCurrentTime(elapsed)
-        rafId = requestAnimationFrame(tick)
-      } else {
-        setCurrentTime(durationMs)
-      }
+      const elapsed = Math.min(durationMs, Date.now() - startTimeRef.current)
+      currentTimeRef.current = elapsed
+      updateDisplayTime(elapsed)
+      updateActiveIndex(findLineIndex(lrc.lines, elapsed))
+
+      if (elapsed < durationMs) rafId = requestAnimationFrame(tick)
     }
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [isPresent, isDragging, durationMs])
+  }, [isPresent, isDragging, durationMs, lrc.lines, updateActiveIndex, updateDisplayTime])
 
   useLayoutEffect(() => {
     if (scrollIndex < 0) return
@@ -102,13 +112,13 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
     }
 
     if (dragAxisRef.current === 'y') {
-      setCurrentTime((prev) => {
-        const next = Math.max(0, Math.min(durationMs, prev - info.delta.y * SEEK_SENSITIVITY))
-        startTimeRef.current = Date.now() - next
-        return next
-      })
+      const next = Math.max(0, Math.min(durationMs, currentTimeRef.current - info.delta.y * SEEK_SENSITIVITY))
+      currentTimeRef.current = next
+      startTimeRef.current = Date.now() - next
+      updateDisplayTime(next)
+      updateActiveIndex(findLineIndex(lrc.lines, next))
     }
-  }, [durationMs])
+  }, [durationMs, lrc.lines, updateActiveIndex, updateDisplayTime])
 
   const handlePanEnd = useCallback((_: unknown, info: PanInfo) => {
     setIsDragging(false)
@@ -155,7 +165,7 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
             <button onClick={onClose} className="text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-ink-100 transition-colors font-serif">
               ← 返回
             </button>
-            <span className="text-ink-400 dark:text-ink-500 text-xs font-serif">{formatTime(currentTime)}</span>
+            <span className="text-ink-400 dark:text-ink-500 text-xs font-serif">{formatTime(displayTimeMs)}</span>
           </header>
 
           {/* Content */}
