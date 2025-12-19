@@ -3,9 +3,15 @@ import { MountainCard } from '../components/MountainCard'
 import { InkFilters } from '../components/InkFilters'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { BackgroundEffects } from '../components/BackgroundEffects'
+import { MusicToggle } from '../components/MusicToggle'
 import { useBreathingAnimation } from '../hooks/useBreathingAnimation'
+import type { BackgroundMusicController } from '../hooks/useBackgroundMusic'
 
-export default function HomePage() {
+interface HomePageProps {
+  music: BackgroundMusicController
+}
+
+export default function HomePage({ music }: HomePageProps) {
   const { artists, setCurrentArtist } = useAppStore()
   const activeIds = useBreathingAnimation(artists, 2)
 
@@ -15,7 +21,13 @@ export default function HomePage() {
       <BackgroundEffects />
 
       <header className="relative z-10 pt-10 pb-4 px-6 flex flex-col items-center">
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 flex items-center gap-1">
+          <MusicToggle
+            enabled={music.enabled}
+            playing={music.playing}
+            blocked={music.blocked}
+            onToggle={music.toggle}
+          />
           <ThemeToggle />
         </div>
         <h1 className="text-3xl font-serif font-bold text-ink-900 dark:text-ink-100 tracking-[0.1em]">《庐山音乐节》</h1>
