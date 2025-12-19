@@ -21,18 +21,20 @@ export default function HomePage({ music }: HomePageProps) {
       <BackgroundEffects />
 
       <header className="relative z-10 pt-10 pb-4 px-6 flex flex-col items-center">
-        <div className="absolute top-4 right-4 flex items-center gap-1">
+        <div className="absolute top-4 left-4">
           <MusicToggle
             enabled={music.enabled}
             playing={music.playing}
             blocked={music.blocked}
             onToggle={music.toggle}
           />
+        </div>
+        <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
         <h1 className="text-3xl font-serif font-bold text-ink-900 dark:text-ink-100 tracking-[0.1em]">《庐山音乐节》</h1>
         <div className="w-10 h-0.5 bg-ink-900/20 dark:bg-ink-100/20 mt-3 rounded-full" />
-        <p className="text-ink-500 dark:text-ink-400 font-serif text-xs mt-2 tracking-widest">歌词本</p>
+        <p className="text-ink-500 dark:text-ink-400 font-serif text-sm mt-2 tracking-widest">歌词本</p>
       </header>
 
       <main className="relative z-10 px-4 pb-16 max-w-md mx-auto">

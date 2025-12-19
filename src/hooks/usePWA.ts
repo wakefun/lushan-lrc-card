@@ -47,17 +47,33 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+function isIOSSafari(): boolean {
+  const ua = navigator.userAgent
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS|Chrome/.test(ua)
+  return isIOS && isSafari
+}
+
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [showIOSGuide, setShowIOSGuide] = useState(false)
   const [dismissed, setDismissed] = useState(() => {
-    return localStorage.getItem('pwa-install-dismissed') === 'true'
+    try {
+      return localStorage.getItem('pwa-install-dismissed') === 'true'
+    } catch {
+      return false
+    }
   })
 
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || (navigator as { standalone?: boolean }).standalone === true
     setIsInstalled(isStandalone)
+
+    if (!isStandalone && isIOSSafari()) {
+      setShowIOSGuide(true)
+    }
 
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault()
@@ -80,19 +96,30 @@ export function useInstallPrompt() {
 
   const install = useCallback(async () => {
     if (!deferredPrompt) return false
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    setDeferredPrompt(null)
-    return outcome === 'accepted'
+    try {
+      await deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      setDeferredPrompt(null)
+      return outcome === 'accepted'
+    } catch {
+      setDeferredPrompt(null)
+      return false
+    }
   }, [deferredPrompt])
 
   const dismiss = useCallback(() => {
     setDismissed(true)
-    localStorage.setItem('pwa-install-dismissed', 'true')
+    setShowIOSGuide(false)
+    try {
+      localStorage.setItem('pwa-install-dismissed', 'true')
+    } catch {
+      // ignore
+    }
   }, [])
 
   return {
-    canInstall: !!deferredPrompt && !isInstalled && !dismissed,
+    canInstall: (!!deferredPrompt || showIOSGuide) && !isInstalled && !dismissed,
+    isIOSSafari: showIOSGuide,
     isInstalled,
     install,
     dismiss

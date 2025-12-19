@@ -41,6 +41,8 @@ export function MusicToggle({ enabled, playing, blocked, onToggle }: MusicToggle
   return (
     <motion.button
       onClick={onToggle}
+      onPointerDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && e.stopPropagation()}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
       transition={PHYSICS_BRUSH}

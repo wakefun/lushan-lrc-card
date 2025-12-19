@@ -7,8 +7,10 @@
 ### 核心功能
 - **离线优先架构** - Service Worker + IndexedDB 双重缓存，无网络也可使用
 - **实时歌词同步** - 基于 LRC 格式的精准时间轴歌词显示
-- **手势交互** - 垂直拖动调节进度，水平滑动切换歌曲
+- **手势交互** - 点击歌词跳转进度，水平滑动切换歌曲
 - **PWA 安装** - 可添加至主屏幕，全屏应用体验
+- **背景音乐** - 自动播放背景音乐，支持静音切换
+- **微信引导** - 检测微信浏览器并引导用户使用外部浏览器打开
 
 ### 视觉设计
 - **水墨山水风格** - 程序化生成的山体 SVG，每位歌手独特造型
@@ -37,7 +39,9 @@ src/
 │   ├── MountainCard.tsx   # 水墨山体（程序化 SVG）
 │   ├── BackgroundEffects  # 背景特效（祥云/繁星）
 │   ├── ThemeToggle.tsx    # 主题切换按钮
-│   └── InstallPrompt.tsx  # PWA 安装提示
+│   ├── MusicToggle.tsx    # 音乐开关按钮
+│   ├── InstallPrompt.tsx  # PWA 安装提示
+│   └── WeChatPrompt.tsx   # 微信浏览器引导页
 ├── pages/
 │   ├── HomePage.tsx       # 歌手选择页
 │   └── LyricPage.tsx      # 歌词播放页
@@ -47,6 +51,7 @@ src/
 │   └── storage.ts         # IndexedDB 封装
 ├── hooks/
 │   ├── usePWA.ts          # PWA 相关 hooks
+│   ├── useBackgroundMusic.ts  # 背景音乐控制
 │   └── useBreathingAnimation.ts  # 呼吸动画
 ├── utils/
 │   ├── lrc.ts             # LRC 解析工具
@@ -166,6 +171,14 @@ colors: {
 - **Screen Wake Lock** - 防止歌词页面息屏
 - **beforeinstallprompt** - 自定义 PWA 安装流程
 - **IndexedDB** - 离线数据持久化
+- **History API** - 浏览器返回按钮正确导航
+- **Clipboard API** - 复制链接（含 execCommand 回退）
+
+## 浏览器兼容
+
+- 微信内置浏览器会显示引导页，提示用户使用外部浏览器打开
+- 支持 iOS Safari "添加到主屏幕"
+- 支持 Android Chrome PWA 安装
 
 ## 许可证
 
