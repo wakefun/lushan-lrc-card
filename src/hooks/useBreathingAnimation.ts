@@ -4,6 +4,7 @@ export function useBreathingAnimation(items: { id: string }[], count = 2, breath
   const [activeIds, setActiveIds] = useState<Set<string>>(new Set())
   const recentlyActiveRef = useRef<Set<string>>(new Set())
   const intervalRef = useRef<number | null>(null)
+  const timeoutsRef = useRef<Set<number>>(new Set())
 
   const selectNextMountain = useCallback(() => {
     if (!items || items.length === 0) return
@@ -21,28 +22,39 @@ export function useBreathingAnimation(items: { id: string }[], count = 2, breath
 
     setActiveIds((prev) => new Set([...prev, selected.id]))
 
-    setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
+      timeoutsRef.current.delete(timeoutId)
       setActiveIds((prev) => {
         const next = new Set(prev)
         next.delete(selected.id)
         return next
       })
     }, breathDuration)
+    timeoutsRef.current.add(timeoutId)
   }, [items, count, breathDuration])
 
   useEffect(() => {
+    setActiveIds(new Set())
+    recentlyActiveRef.current = new Set()
+
     if (!items || items.length === 0) return
 
     const staggerDelay = breathDuration / (count + 1)
 
     for (let i = 0; i < count; i++) {
-      setTimeout(() => selectNextMountain(), i * staggerDelay)
+      const timeoutId = window.setTimeout(() => {
+        timeoutsRef.current.delete(timeoutId)
+        selectNextMountain()
+      }, i * staggerDelay)
+      timeoutsRef.current.add(timeoutId)
     }
 
     intervalRef.current = window.setInterval(selectNextMountain, staggerDelay)
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
+      for (const timeoutId of timeoutsRef.current) window.clearTimeout(timeoutId)
+      timeoutsRef.current.clear()
     }
   }, [items, count, breathDuration, selectNextMountain])
 

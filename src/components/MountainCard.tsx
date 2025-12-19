@@ -75,7 +75,7 @@ export const MountainCard = ({ artist, onClick, index, isBreathing }: MountainCa
   return (
     <motion.button
       onClick={() => onClick(artist)}
-      className="relative flex flex-col items-center justify-end w-full aspect-[4/3] group focus:outline-none isolate"
+      className="relative flex flex-col items-center justify-end w-full aspect-[4/3] group mountain-card focus:outline-none isolate"
     >
       {/* 山体层 + 文字层 (一起呼吸) */}
       <motion.div
@@ -134,22 +134,6 @@ export const MountainCard = ({ artist, onClick, index, isBreathing }: MountainCa
           </svg>
         </div>
       </motion.div>
-
-      {/* CSS 变量 - 日间黑字白晕，夜间白字柔晕 */}
-      <style>{`
-        .group {
-          --text-start: #1a1a1a;
-          --text-end: #4a4a4a;
-          --text-halo: rgba(255, 255, 255, 0.9);
-          --text-halo-outer: rgba(255, 255, 255, 0.5);
-        }
-        .dark .group {
-          --text-start: #f1f5f9;
-          --text-end: #94a3b8;
-          --text-halo: rgba(255, 255, 255, 0.4);
-          --text-halo-outer: rgba(255, 255, 255, 0.15);
-        }
-      `}</style>
     </motion.button>
   )
 }

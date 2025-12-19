@@ -59,6 +59,21 @@ body {
     display: none;
   }
 
+  /* MountainCard text gradient + halo tokens */
+  .mountain-card {
+    --text-start: #1a1a1a;
+    --text-end: #4a4a4a;
+    --text-halo: rgba(255, 255, 255, 0.9);
+    --text-halo-outer: rgba(255, 255, 255, 0.5);
+  }
+
+  .dark .mountain-card {
+    --text-start: #f1f5f9;
+    --text-end: #94a3b8;
+    --text-halo: rgba(255, 255, 255, 0.4);
+    --text-halo-outer: rgba(255, 255, 255, 0.15);
+  }
+
   .bg-paper-texture::before {
     content: "";
     position: fixed;
