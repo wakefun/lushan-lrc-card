@@ -106,6 +106,10 @@ export function useBackgroundMusic(options: UseBackgroundMusicOptions = {}): Bac
     if (!blocked || !enabled) return
 
     const onFirstInteraction = () => {
+      const audio = audioRef.current
+      if (audio) {
+        try { audio.currentTime = 0 } catch { /* ignore */ }
+      }
       void tryPlay(true)
     }
 
@@ -139,6 +143,11 @@ export function useBackgroundMusic(options: UseBackgroundMusicOptions = {}): Bac
       return
     }
 
+    // When blocked, reset to beginning before playing
+    const audio = audioRef.current
+    if (audio) {
+      try { audio.currentTime = 0 } catch { /* ignore */ }
+    }
     void tryPlay(true)
   }, [blocked, enabled, pause, playing, tryPlay])
 

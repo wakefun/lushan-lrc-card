@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from 'react'
-import { motion, PanInfo, useIsPresent } from 'framer-motion'
+import { motion, useIsPresent } from 'framer-motion'
 import type { Song } from '../types/music'
 import { parseLrc, findLineIndex, formatTime } from '../utils/lrc'
 
@@ -11,10 +11,9 @@ interface LyricCardProps {
   direction: number
 }
 
-const SWIPE_OFFSET_THRESHOLD = 80
-const SWIPE_VELOCITY_THRESHOLD = 500
-const AXIS_LOCK_THRESHOLD = 10
-const SEEK_SENSITIVITY = 50
+const SWIPE_OFFSET_THRESHOLD = 50
+const SWIPE_VELOCITY_THRESHOLD = 0.3
+const AUTO_SCROLL_RESUME_DELAY = 3000
 
 const variants = {
   enter: (dir: number) => ({
@@ -35,23 +34,23 @@ const variants = {
 }
 
 export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCardProps) => {
-  const [isDragging, setIsDragging] = useState(false)
-  const [lyricsOffsetY, setLyricsOffsetY] = useState(0)
   const [activeIndex, setActiveIndex] = useState(-1)
   const [displayTimeMs, setDisplayTimeMs] = useState(0)
-  const dragAxisRef = useRef<'x' | 'y' | null>(null)
-  const lyricsViewportRef = useRef<HTMLDivElement>(null)
+  const [isUserScrolling, setIsUserScrolling] = useState(false)
+  const lyricsContainerRef = useRef<HTMLDivElement>(null)
   const lineRefs = useRef<Array<HTMLDivElement | null>>([])
-  const lyricsOffsetYRef = useRef(0)
   const activeIndexRef = useRef(-1)
   const displayedSecondRef = useRef(-1)
   const startTimeRef = useRef(Date.now())
   const currentTimeRef = useRef(0)
+  const userScrollTimeoutRef = useRef<number | null>(null)
   const isPresent = useIsPresent()
+  const dragStartXRef = useRef(0)
+  const dragStartTimeRef = useRef(0)
+  const isDraggingRef = useRef(false)
 
   const lrc = useMemo(() => parseLrc(song.lyricRaw), [song.lyricRaw])
   const durationMs = (song.durationSec || 300) * 1000
-  const scrollIndex = lrc.lines.length === 0 ? -1 : Math.max(0, activeIndex)
 
   const updateActiveIndex = useCallback((next: number) => {
     if (next === activeIndexRef.current) return
@@ -66,8 +65,9 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
     setDisplayTimeMs(nextMs)
   }, [])
 
+  // Playback timer
   useEffect(() => {
-    if (!isPresent || isDragging) return
+    if (!isPresent) return
     let rafId: number
     const tick = () => {
       const elapsed = Math.min(durationMs, Date.now() - startTimeRef.current)
@@ -79,58 +79,90 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
     }
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [isPresent, isDragging, durationMs, lrc.lines, updateActiveIndex, updateDisplayTime])
+  }, [isPresent, durationMs, lrc.lines, updateActiveIndex, updateDisplayTime])
 
+  // Auto-scroll to active line
   useLayoutEffect(() => {
-    if (scrollIndex < 0) return
-    const viewport = lyricsViewportRef.current
-    const lineEl = lineRefs.current[scrollIndex]
-    if (!viewport || !lineEl) return
+    if (activeIndex < 0 || isUserScrolling) return
+    const container = lyricsContainerRef.current
+    const lineEl = lineRefs.current[activeIndex]
+    if (!container || !lineEl) return
 
-    const viewportRect = viewport.getBoundingClientRect()
+    const containerRect = container.getBoundingClientRect()
     const lineRect = lineEl.getBoundingClientRect()
-    const viewportCenterY = viewportRect.top + viewportRect.height / 2
-    const lineCenterY = lineRect.top + lineRect.height / 2
-    const delta = viewportCenterY - lineCenterY
+    const containerCenterY = containerRect.height / 2
+    const lineCenterY = lineRect.top - containerRect.top + lineRect.height / 2
+    const scrollTarget = container.scrollTop + lineCenterY - containerCenterY
 
-    const nextOffset = lyricsOffsetYRef.current + delta
-    lyricsOffsetYRef.current = nextOffset
-    setLyricsOffsetY(nextOffset)
-  }, [scrollIndex])
+    container.scrollTo({ top: scrollTarget, behavior: 'smooth' })
+  }, [activeIndex, isUserScrolling])
 
-  const handlePanStart = useCallback(() => {
-    setIsDragging(true)
-    dragAxisRef.current = null
+  // Handle user scroll - pause auto-scroll temporarily
+  const handleScroll = useCallback(() => {
+    if (!isUserScrolling) {
+      setIsUserScrolling(true)
+    }
+    if (userScrollTimeoutRef.current) {
+      clearTimeout(userScrollTimeoutRef.current)
+    }
+    userScrollTimeoutRef.current = window.setTimeout(() => {
+      setIsUserScrolling(false)
+    }, AUTO_SCROLL_RESUME_DELAY)
+  }, [isUserScrolling])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (userScrollTimeoutRef.current) {
+        clearTimeout(userScrollTimeoutRef.current)
+      }
+    }
   }, [])
 
-  const handlePan = useCallback((_: unknown, info: PanInfo) => {
-    if (!dragAxisRef.current) {
-      const absX = Math.abs(info.offset.x)
-      const absY = Math.abs(info.offset.y)
-      if (absX < AXIS_LOCK_THRESHOLD && absY < AXIS_LOCK_THRESHOLD) return
-      dragAxisRef.current = absX > absY ? 'x' : 'y'
-    }
+  // Handle tap on lyric line to seek
+  const handleLineClick = useCallback((index: number) => {
+    const line = lrc.lines[index]
+    if (!line) return
 
-    if (dragAxisRef.current === 'y') {
-      const next = Math.max(0, Math.min(durationMs, currentTimeRef.current - info.delta.y * SEEK_SENSITIVITY))
-      currentTimeRef.current = next
-      startTimeRef.current = Date.now() - next
-      updateDisplayTime(next)
-      updateActiveIndex(findLineIndex(lrc.lines, next))
-    }
-  }, [durationMs, lrc.lines, updateActiveIndex, updateDisplayTime])
+    currentTimeRef.current = line.timeMs
+    startTimeRef.current = Date.now() - line.timeMs
+    updateDisplayTime(line.timeMs)
+    updateActiveIndex(index)
+    setIsUserScrolling(false)
+  }, [lrc.lines, updateActiveIndex, updateDisplayTime])
 
-  const handlePanEnd = useCallback((_: unknown, info: PanInfo) => {
-    setIsDragging(false)
-    if (dragAxisRef.current === 'x') {
-      const offsetX = info.offset.x
-      const velocityX = info.velocity.x
-      if (offsetX > SWIPE_OFFSET_THRESHOLD || velocityX > SWIPE_VELOCITY_THRESHOLD) onPrev()
-      else if (offsetX < -SWIPE_OFFSET_THRESHOLD || velocityX < -SWIPE_VELOCITY_THRESHOLD) onNext()
+  // Horizontal swipe for song navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    dragStartXRef.current = e.touches[0].clientX
+    dragStartTimeRef.current = Date.now()
+    isDraggingRef.current = false
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const deltaX = e.touches[0].clientX - dragStartXRef.current
+    if (Math.abs(deltaX) > 15) {
+      isDraggingRef.current = true
     }
-    dragAxisRef.current = null
-    startTimeRef.current = Date.now() - currentTimeRef.current
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - dragStartXRef.current
+    const deltaTime = Date.now() - dragStartTimeRef.current
+    const velocity = Math.abs(deltaX) / deltaTime // px/ms
+
+    // Trigger swipe if distance OR velocity threshold is met
+    if (Math.abs(deltaX) > SWIPE_OFFSET_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD) {
+      if (deltaX > 0) onPrev()
+      else onNext()
+    }
   }, [onNext, onPrev])
+
+  // Prevent line click during swipe
+  const handleLineClickWrapper = useCallback((index: number) => {
+    if (!isDraggingRef.current) {
+      handleLineClick(index)
+    }
+  }, [handleLineClick])
 
   return (
     <motion.div
@@ -141,10 +173,9 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
       exit="exit"
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="absolute inset-0 flex items-center justify-center p-6"
-      style={{ touchAction: 'none' }}
-      onPanStart={handlePanStart}
-      onPan={handlePan}
-      onPanEnd={handlePanEnd}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="relative w-full h-full max-w-sm">
         {/* Card Shadow */}
@@ -173,39 +204,38 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
             <h2 className="text-lg font-serif font-bold text-ink-900 dark:text-ink-100 text-center">{song.name}</h2>
             <p className="text-sm text-ink-500 dark:text-ink-400 font-serif mt-1">{song.artistName} · {song.albumName}</p>
 
-            <div ref={lyricsViewportRef} className="relative flex-1 w-full mt-4 overflow-hidden">
-              <motion.div
-                animate={{ y: lyricsOffsetY }}
-                transition={{ type: 'spring', stiffness: 260, damping: 32 }}
-                className="will-change-transform"
-              >
-                <div className="h-[35vh]" />
-                {lrc.lines.length > 0 ? (
-                  lrc.lines.map((line, i) => (
-                    <div
-                      key={`${line.timeMs}-${i}`}
-                      ref={(el) => { lineRefs.current[i] = el }}
-                      className={`py-2.5 text-center font-serif transition-all duration-300 ${
-                        i === activeIndex
-                          ? 'text-[var(--ink-red)] dark:text-ink-100 text-xl font-semibold scale-105'
-                          : 'text-ink-400 dark:text-ink-500 text-base'
-                      }`}
-                    >
-                      {line.text}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-ink-400 dark:text-ink-500 font-serif">暂无歌词</div>
-                )}
-                <div className="h-[35vh]" />
-              </motion.div>
+            <div
+              ref={lyricsContainerRef}
+              className="relative flex-1 w-full mt-4 overflow-y-auto scrollbar-none"
+              onScroll={handleScroll}
+            >
+              <div className="h-[35vh]" />
+              {lrc.lines.length > 0 ? (
+                lrc.lines.map((line, i) => (
+                  <div
+                    key={`${line.timeMs}-${i}`}
+                    ref={(el) => { lineRefs.current[i] = el }}
+                    onClick={() => handleLineClickWrapper(i)}
+                    className={`py-2.5 text-center font-serif transition-all duration-300 cursor-pointer active:scale-95 ${
+                      i === activeIndex
+                        ? 'text-[var(--ink-red)] dark:text-ink-100 text-xl font-semibold scale-105'
+                        : 'text-ink-400 dark:text-ink-500 text-base hover:text-ink-600 dark:hover:text-ink-300'
+                    }`}
+                  >
+                    {line.text}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-ink-400 dark:text-ink-500 font-serif">暂无歌词</div>
+              )}
+              <div className="h-[35vh]" />
             </div>
           </div>
 
           {/* Footer - Just Hint */}
           <footer className="relative z-10 px-4 py-3 border-t border-ink-200/30 dark:border-ink-700/30">
             <p className="text-center text-xs text-ink-400 dark:text-ink-500 font-serif">
-              ← 左右滑动切歌 →
+              ← 左右滑动切歌 · 点击歌词跳转 →
             </p>
           </footer>
         </div>

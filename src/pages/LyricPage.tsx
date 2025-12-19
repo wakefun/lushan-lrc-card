@@ -5,7 +5,7 @@ import { LyricCard } from '../components/LyricCard'
 import { useWakeLock } from '../hooks/usePWA'
 
 export default function LyricPage() {
-  const { songs, currentSongIndex, currentArtist, setCurrentArtist, setCurrentSongIndex } = useAppStore()
+  const { songs, currentSongIndex, currentArtist, setCurrentSongIndex } = useAppStore()
   const [direction, setDirection] = useState(0)
   const { request: requestWakeLock } = useWakeLock()
 
@@ -57,8 +57,8 @@ export default function LyricPage() {
   }, [currentSongIndex, setCurrentSongIndex])
 
   const handleClose = useCallback(() => {
-    setCurrentArtist(null)
-  }, [setCurrentArtist])
+    history.back()
+  }, [])
 
   if (!currentSong || !currentArtist) {
     return (
