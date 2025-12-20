@@ -12,6 +12,26 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const music = useBackgroundMusic({ src: '/lushan.mp3' })
 
+  // Set dynamic viewport height for mobile browsers
+  useEffect(() => {
+    const setAppHeight = () => {
+      const height = window.visualViewport?.height ?? window.innerHeight
+      document.documentElement.style.setProperty('--app-height', `${height}px`)
+    }
+
+    setAppHeight()
+
+    window.addEventListener('resize', setAppHeight)
+    window.addEventListener('orientationchange', setAppHeight)
+    window.visualViewport?.addEventListener('resize', setAppHeight)
+
+    return () => {
+      window.removeEventListener('resize', setAppHeight)
+      window.removeEventListener('orientationchange', setAppHeight)
+      window.visualViewport?.removeEventListener('resize', setAppHeight)
+    }
+  }, [])
+
   useEffect(() => {
     initData().finally(() => setLoading(false))
   }, [initData])

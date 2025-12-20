@@ -16,12 +16,12 @@ export default function HomePage({ music }: HomePageProps) {
   const activeIds = useBreathingAnimation(artists, 2)
 
   return (
-    <div className="relative min-h-full w-full bg-[var(--bg-paper)] bg-paper-texture overflow-x-hidden overflow-y-auto transition-colors duration-500">
+    <div className="relative h-full w-full bg-[var(--bg-paper)] bg-paper-texture overflow-x-hidden overflow-y-auto transition-colors duration-500">
       <InkFilters />
       <BackgroundEffects />
 
-      <header className="relative z-10 pt-10 pb-4 px-6 flex flex-col items-center">
-        <div className="absolute top-4 left-4">
+      <header className="relative z-10 pt-[max(2.5rem,calc(1rem+var(--safe-area-inset-top)))] pb-4 px-6 flex flex-col items-center">
+        <div className="absolute top-[max(1rem,var(--safe-area-inset-top))] left-4">
           <MusicToggle
             enabled={music.enabled}
             playing={music.playing}
@@ -29,7 +29,7 @@ export default function HomePage({ music }: HomePageProps) {
             onToggle={music.toggle}
           />
         </div>
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-[max(1rem,var(--safe-area-inset-top))] right-4">
           <ThemeToggle />
         </div>
         <h1 className="text-3xl font-serif font-bold text-ink-900 dark:text-ink-100 tracking-[0.1em]">《庐山音乐节》</h1>
@@ -37,7 +37,7 @@ export default function HomePage({ music }: HomePageProps) {
         <p className="text-ink-500 dark:text-ink-400 font-serif text-sm mt-2 tracking-widest">歌词本</p>
       </header>
 
-      <main className="relative z-10 px-4 pb-16 max-w-md mx-auto">
+      <main className="relative z-10 px-4 pb-[max(4rem,calc(2rem+var(--safe-area-inset-bottom)))] max-w-md mx-auto">
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 items-end">
           {artists.map((artist, index) => (
             <MountainCard

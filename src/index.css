@@ -6,6 +6,7 @@
   :root {
     --safe-area-inset-top: env(safe-area-inset-top);
     --safe-area-inset-bottom: env(safe-area-inset-bottom);
+    --app-height: 100vh;
     --bg-paper: #fdfcf8;
     --paper-opacity: 0.25;
     --ink-red: #DC2626;
@@ -15,9 +16,21 @@
     --bg-paper: #111316;
     --paper-opacity: 0.08;
   }
+
+  @supports (height: 100svh) {
+    :root {
+      --app-height: 100svh;
+    }
+  }
+
+  @supports (height: 100dvh) {
+    :root {
+      --app-height: 100dvh;
+    }
+  }
 }
 
-html, body, #root {
+html, body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -25,6 +38,11 @@ html, body, #root {
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
+}
+
+#root {
+  height: var(--app-height);
+  overflow: hidden;
 }
 
 body {
