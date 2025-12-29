@@ -11,8 +11,8 @@ interface LyricCardProps {
   direction: number
 }
 
-const SWIPE_OFFSET_THRESHOLD = 50
-const SWIPE_VELOCITY_THRESHOLD = 0.3
+const SWIPE_OFFSET_THRESHOLD = 80
+const SWIPE_VELOCITY_THRESHOLD = 0.5
 const AUTO_SCROLL_RESUME_DELAY = 3000
 
 const variants = {
@@ -46,8 +46,10 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
   const userScrollTimeoutRef = useRef<number | null>(null)
   const isPresent = useIsPresent()
   const dragStartXRef = useRef(0)
+  const dragStartYRef = useRef(0)
   const dragStartTimeRef = useRef(0)
   const isDraggingRef = useRef(false)
+  const isVerticalScrollRef = useRef(false)
 
   const lrc = useMemo(() => parseLrc(song.lyricRaw), [song.lyricRaw])
   const durationMs = (song.durationSec || 300) * 1000
@@ -134,18 +136,30 @@ export const LyricCard = ({ song, onNext, onPrev, onClose, direction }: LyricCar
   // Horizontal swipe for song navigation
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     dragStartXRef.current = e.touches[0].clientX
+    dragStartYRef.current = e.touches[0].clientY
     dragStartTimeRef.current = Date.now()
     isDraggingRef.current = false
+    isVerticalScrollRef.current = false
   }, [])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const deltaX = e.touches[0].clientX - dragStartXRef.current
-    if (Math.abs(deltaX) > 15) {
-      isDraggingRef.current = true
+    const deltaX = Math.abs(e.touches[0].clientX - dragStartXRef.current)
+    const deltaY = Math.abs(e.touches[0].clientY - dragStartYRef.current)
+
+    // 判断滑动方向：如果垂直位移大于水平位移，认为是垂直滚动
+    if (!isDraggingRef.current && !isVerticalScrollRef.current) {
+      if (deltaY > deltaX && deltaY > 10) {
+        isVerticalScrollRef.current = true
+      } else if (deltaX > deltaY && deltaX > 20) {
+        isDraggingRef.current = true
+      }
     }
   }, [])
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    // 如果是垂直滚动，不触发左右切歌
+    if (isVerticalScrollRef.current) return
+
     const deltaX = e.changedTouches[0].clientX - dragStartXRef.current
     const deltaTime = Date.now() - dragStartTimeRef.current
     const velocity = Math.abs(deltaX) / deltaTime // px/ms

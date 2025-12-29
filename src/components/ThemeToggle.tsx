@@ -40,10 +40,13 @@ export const ThemeToggle = () => {
           ) : (
             // 日间模式: 显示银白月亮 (点击切换到夜间)
             <g filter="url(#ink-rough)">
-              {/* 月牙形状 - 更亮的白色 */}
+              {/* 淡黑色背景 */}
+              <circle cx="20" cy="20" r="14" fill="#000000" opacity="0.15" />
+              {/* 月牙形状 - 往左上偏移 */}
               <path
                 d="M28,12 A10,10 0 1,1 12,28 A12,12 0 1,0 28,12 Z"
                 fill="#ffffff"
+                transform="translate(-3, -3)"
                 style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.9))' }}
               />
             </g>
