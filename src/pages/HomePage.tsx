@@ -33,6 +33,7 @@ export default function HomePage({ music }: HomePageProps) {
           <ThemeToggle />
         </div>
         <h1 className="text-3xl font-serif font-bold text-ink-900 dark:text-ink-100 tracking-[0.1em]">《庐山音乐节》</h1>
+        <p className="text-sm font-serif mt-1 tracking-widest text-[#c23a2b] dark:text-[#c9c4a8]">跨年版 2025-2026</p>
         <div className="w-10 h-0.5 bg-ink-900/20 dark:bg-ink-100/20 mt-3 rounded-full" />
         <p className="text-ink-500 dark:text-ink-400 font-serif text-sm mt-2 tracking-widest">歌词本</p>
       </header>
