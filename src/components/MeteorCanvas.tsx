@@ -134,11 +134,13 @@ const drawMeteor = (ctx: CanvasRenderingContext2D, meteor: Meteor) => {
  * - 常态：最多5颗流星随机出现
  * - 每66秒：触发66颗流星大爆发
  * - 流星自动清理：淡出或飞出屏幕后移除，不会累积
+ * - 页面后台时暂停，避免累积导致崩溃
  */
 export const MeteorCanvas = memo(() => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const meteorsRef = useRef<Meteor[]>([])
   const animationRef = useRef<number>(0)
+  const burstIntervalRef = useRef<number>(0)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -171,23 +173,45 @@ export const MeteorCanvas = memo(() => {
       animationRef.current = requestAnimationFrame(animate)
     }
 
-    // 每66秒流星雨大爆发（66颗）
-    const burstInterval = setInterval(() => {
+    // 触发流星雨大爆发
+    const triggerBurst = () => {
       const width = canvas.width
       const height = canvas.height
       for (let i = 0; i < 66; i++) {
         meteorsRef.current.push(createMeteor(width, height))
       }
-    }, 66000)
+    }
+
+    // 启动定时器
+    const startBurstInterval = () => {
+      burstIntervalRef.current = window.setInterval(triggerBurst, 66000)
+    }
+
+    // 页面可见性变化处理：后台时暂停，前台时恢复
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // 页面进入后台：暂停定时器和动画
+        clearInterval(burstIntervalRef.current)
+        cancelAnimationFrame(animationRef.current)
+      } else {
+        // 页面回到前台：清空累积的流星，重新启动
+        meteorsRef.current = []
+        startBurstInterval()
+        animate()
+      }
+    }
 
     resize()
     window.addEventListener('resize', resize)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    startBurstInterval()
     animate()
 
     return () => {
       window.removeEventListener('resize', resize)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       cancelAnimationFrame(animationRef.current)
-      clearInterval(burstInterval)
+      clearInterval(burstIntervalRef.current)
     }
   }, [])
 
