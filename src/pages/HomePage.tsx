@@ -29,7 +29,7 @@ export default function HomePage({ music }: HomePageProps) {
             onToggle={music.toggle}
           />
         </div>
-        <div className="absolute top-[max(1rem,var(--safe-area-inset-top))] right-4">
+        <div className="absolute top-[max(1rem,var(--safe-area-inset-top))] right-4 overflow-visible">
           <ThemeToggle />
         </div>
         <h1 className="text-3xl font-serif font-bold text-ink-900 dark:text-ink-100 tracking-[0.1em]">《庐山音乐节》</h1>

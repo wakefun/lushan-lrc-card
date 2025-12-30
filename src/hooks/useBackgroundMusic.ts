@@ -77,7 +77,12 @@ export function useBackgroundMusic(options: UseBackgroundMusicOptions = {}): Bac
       return true
     } catch (error) {
       setPlaying(false)
-      setBlocked(!fromGesture && isAutoplayBlockedError(error))
+      const autoplayBlocked = isAutoplayBlockedError(error)
+      if (fromGesture) {
+        setBlocked((prev) => prev || autoplayBlocked)
+      } else {
+        setBlocked(autoplayBlocked)
+      }
       return false
     }
   }, [])
@@ -105,7 +110,10 @@ export function useBackgroundMusic(options: UseBackgroundMusicOptions = {}): Bac
   useEffect(() => {
     if (!blocked || !enabled) return
 
-    const onFirstInteraction = () => {
+    const onFirstInteraction = (e: Event) => {
+      // Ignore events from music toggle button (handled by toggle())
+      if ((e.target as HTMLElement)?.closest?.('[aria-label*="背景音乐"]')) return
+
       const audio = audioRef.current
       if (audio) {
         try { audio.currentTime = 0 } catch { /* ignore */ }
@@ -113,12 +121,13 @@ export function useBackgroundMusic(options: UseBackgroundMusicOptions = {}): Bac
       void tryPlay(true)
     }
 
-    window.addEventListener('pointerdown', onFirstInteraction, { once: true })
-    window.addEventListener('keydown', onFirstInteraction, { once: true })
+    const listenerOptions = { capture: true }
+    window.addEventListener('pointerdown', onFirstInteraction, listenerOptions)
+    window.addEventListener('keydown', onFirstInteraction, listenerOptions)
 
     return () => {
-      window.removeEventListener('pointerdown', onFirstInteraction)
-      window.removeEventListener('keydown', onFirstInteraction)
+      window.removeEventListener('pointerdown', onFirstInteraction, listenerOptions)
+      window.removeEventListener('keydown', onFirstInteraction, listenerOptions)
     }
   }, [blocked, enabled, tryPlay])
 

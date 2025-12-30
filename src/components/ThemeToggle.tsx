@@ -12,43 +12,47 @@ export const ThemeToggle = () => {
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
       transition={PHYSICS_BRUSH}
-      className="w-12 h-12 rounded-full flex items-center justify-center focus:outline-none"
+      className="w-12 h-12 rounded-full flex items-center justify-center focus:outline-none overflow-visible"
       aria-label={isDark ? '切换日间模式' : '切换夜间模式'}
     >
       <motion.div
         initial={false}
-        animate={{ rotate: isDark ? 180 : 0 }}
+        animate={{ rotate: isDark ? 0 : 180 }}
         transition={{ duration: 0.5, ease: 'backOut' }}
-        className="relative w-full h-full flex items-center justify-center"
+        className="relative w-full h-full flex items-center justify-center overflow-visible"
       >
         <svg viewBox="0 0 40 40" className="w-full h-full overflow-visible">
           <defs>
-            <filter id="ink-rough">
+            <filter id="ink-rough" x="-50%" y="-50%" width="200%" height="200%">
               <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" result="noise" />
               <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" />
+            </filter>
+            <filter id="moon-glow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+              <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise" />
+              <feDisplacementMap in="blur" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" result="roughGlow" />
+              <feMerge>
+                <feMergeNode in="roughGlow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
             </filter>
           </defs>
 
           {isDark ? (
-            // 夜间模式: 显示淡红太阳 (点击切换到日间)
+            // 夜间模式: 显示银白月亮
+            <g filter="url(#moon-glow)">
+              <path
+                d="M28,12 A10,10 0 1,1 12,28 A12,12 0 1,0 28,12 Z"
+                fill="#ffffff"
+              />
+            </g>
+          ) : (
+            // 日间模式: 显示淡红太阳
             <g filter="url(#ink-rough)">
               {/* 光晕 */}
               <circle cx="20" cy="20" r="14" fill="#fca5a5" opacity="0.25" />
               {/* 核心 */}
               <circle cx="20" cy="20" r="8" fill="#f87171" className="drop-shadow-lg" />
-            </g>
-          ) : (
-            // 日间模式: 显示银白月亮 (点击切换到夜间)
-            <g filter="url(#ink-rough)">
-              {/* 淡黑色背景 */}
-              <circle cx="20" cy="20" r="14" fill="#000000" opacity="0.15" />
-              {/* 月牙形状 - 往左上偏移 */}
-              <path
-                d="M28,12 A10,10 0 1,1 12,28 A12,12 0 1,0 28,12 Z"
-                fill="#ffffff"
-                transform="translate(-3, -3)"
-                style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.9))' }}
-              />
             </g>
           )}
         </svg>

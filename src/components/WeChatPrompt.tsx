@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export const WeChatPrompt = () => {
   const [isWeChat, setIsWeChat] = useState(false)
   const [showToast, setShowToast] = useState(false)
+  const [isPressed, setIsPressed] = useState(false)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase()
@@ -11,16 +13,27 @@ export const WeChatPrompt = () => {
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    }
+  }, [])
+
+  const triggerToast = () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setShowToast(true)
+    toastTimerRef.current = setTimeout(() => setShowToast(false), 3000)
+  }
+
   const handleCopy = () => {
     const url = window.location.href
+    setIsPressed(true)
+    setTimeout(() => setIsPressed(false), 200)
 
     // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url)
-        .then(() => {
-          setShowToast(true)
-          setTimeout(() => setShowToast(false), 3000)
-        })
+        .then(() => triggerToast())
         .catch(() => fallbackCopy(url))
     } else {
       fallbackCopy(url)
@@ -41,8 +54,7 @@ export const WeChatPrompt = () => {
     try {
       const success = document.execCommand('copy')
       if (success) {
-        setShowToast(true)
-        setTimeout(() => setShowToast(false), 3000)
+        triggerToast()
       } else {
         alert('复制失败，请手动复制链接：' + text)
       }
@@ -102,12 +114,18 @@ export const WeChatPrompt = () => {
             <div className="pb-2 shrink-0">
               <button
                 onClick={handleCopy}
-                className="group relative px-8 py-3 bg-[#f8f6f1] border-[3px] border-[var(--ink-red)] text-[var(--ink-red)] font-serif text-lg rounded-sm hover:bg-[var(--ink-red)] hover:text-white transition-all duration-300 active:scale-95"
+                className={`group relative px-8 py-3 border-[3px] border-[var(--ink-red)] font-serif text-lg rounded-sm transition-all duration-200 ${
+                  isPressed
+                    ? 'bg-[var(--ink-red)] text-white scale-95'
+                    : 'bg-[#f8f6f1] text-[var(--ink-red)]'
+                }`}
               >
                 <span className="relative z-10 tracking-widest font-bold">
                   复制链接
                 </span>
-                <div className="absolute inset-1 border border-[var(--ink-red)] group-hover:border-white/50 pointer-events-none" />
+                <div className={`absolute inset-1 border pointer-events-none ${
+                  isPressed ? 'border-white/50' : 'border-[var(--ink-red)]'
+                }`} />
               </button>
             </div>
           </div>
