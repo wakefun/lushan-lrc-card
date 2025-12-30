@@ -82,7 +82,7 @@ const CloudItem = memo(({
         height: '50px',
         zIndex: cloud.zIndex,
         animation: `${cloud.direction === 'left' ? 'cloud-left' : 'cloud-right'} ${cloud.duration}s linear forwards`,
-        contain: 'layout style paint'
+        contain: 'layout style'
       }}
       onAnimationEnd={handleAnimationEnd}
       onDoubleClick={handleDoubleClick}

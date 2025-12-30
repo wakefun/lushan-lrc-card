@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion'
-import { PHYSICS_BRUSH } from '../utils/animations'
 import { useAppStore } from '../store/app'
 
 interface MusicToggleProps {
@@ -21,32 +19,12 @@ export function MusicToggle({ enabled, playing, blocked, onToggle }: MusicToggle
         ? '点击播放背景音乐'
         : '关闭背景音乐'
 
-  const noteVariants = {
-    playing: {
-      scale: [1, 1.05, 1],
-      rotate: [0, 3, -3, 0],
-      transition: {
-        duration: 3,
-        repeat: Infinity,
-        ease: 'easeInOut' as const
-      }
-    },
-    paused: {
-      scale: 0.95,
-      rotate: 0,
-      opacity: 0.6
-    }
-  }
-
   return (
-    <motion.button
+    <button
       onClick={onToggle}
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && e.stopPropagation()}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
-      transition={PHYSICS_BRUSH}
-      className="w-12 h-12 rounded-full flex items-center justify-center focus:outline-none"
+      className="w-12 h-12 rounded-full flex items-center justify-center focus:outline-none active:scale-90 hover:scale-110 transition-transform"
       aria-label={ariaLabel}
       aria-pressed={enabled}
     >
@@ -61,19 +39,14 @@ export function MusicToggle({ enabled, playing, blocked, onToggle }: MusicToggle
 
           <g filter="url(#ink-rough-music)">
             {playing && (
-              <motion.circle
+              <circle
                 cx="20" cy="20" r="14"
                 fill={isDark ? '#ffffff' : '#000000'}
-                opacity={0.08}
-                animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.08, 0.04, 0.08] }}
-                transition={{ duration: 2.5, repeat: Infinity }}
+                className="animate-music-pulse"
               />
             )}
 
-            <motion.g
-              variants={noteVariants}
-              animate={playing ? 'playing' : 'paused'}
-            >
+            <g className={playing ? 'animate-music-note' : 'scale-95 opacity-60'} style={{ transformOrigin: '20px 20px' }}>
               {/* 音符主体 - 水墨笔触风格 */}
               <path
                 d="M16,28 Q12,28 12,24 Q12,20 16,20 Q20,20 20,24 V10 L30,7 V20 Q26,20 26,16 Q26,12 30,12 Q34,12 34,16"
@@ -83,7 +56,7 @@ export function MusicToggle({ enabled, playing, blocked, onToggle }: MusicToggle
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-            </motion.g>
+            </g>
 
             {/* 静音时的斜杠 */}
             {!enabled && (
@@ -103,6 +76,6 @@ export function MusicToggle({ enabled, playing, blocked, onToggle }: MusicToggle
           <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
         )}
       </div>
-    </motion.button>
+    </button>
   )
 }

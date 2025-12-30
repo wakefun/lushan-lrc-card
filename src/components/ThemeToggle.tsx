@@ -28,12 +28,13 @@ export const ThemeToggle = () => {
               <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" />
             </filter>
             <filter id="moon-glow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
-              <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise" />
-              <feDisplacementMap in="blur" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" result="roughGlow" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+              <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G" result="roughEdge" />
+              <feGaussianBlur in="roughEdge" stdDeviation="0.3" result="smoothRough" />
               <feMerge>
-                <feMergeNode in="roughGlow" />
-                <feMergeNode in="SourceGraphic" />
+                <feMergeNode in="blur" />
+                <feMergeNode in="smoothRough" />
               </feMerge>
             </filter>
           </defs>

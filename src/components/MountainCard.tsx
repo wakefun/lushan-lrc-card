@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { motion, Variants } from 'framer-motion'
 import type { Artist } from '../types/music'
 
 interface MountainCardProps {
@@ -10,19 +9,6 @@ interface MountainCardProps {
 }
 
 const SMALL_MOUNTAIN_COUNTS = [3, 3, 3, 0, 4, 3, 3, 3]
-
-const mountainVariants: Variants = {
-  idle: {
-    scale: 1,
-    y: 0,
-    transition: { duration: 3, ease: [0.45, 0, 0.55, 1] }
-  },
-  breathing: {
-    scale: 1.05,
-    y: -5,
-    transition: { duration: 3, ease: [0.45, 0, 0.55, 1] }
-  }
-}
 
 function generateSmallMountains(seed: number, count: number) {
   const mountains: Array<{ path: string; opacity: number; scale: number }> = []
@@ -73,16 +59,21 @@ export const MountainCard = ({ artist, onClick, index, isBreathing }: MountainCa
   }, [seed, smallMountainCount])
 
   return (
-    <motion.button
+    <button
       onClick={() => onClick(artist)}
       className="relative flex flex-col items-center justify-end w-full aspect-[4/3] group mountain-card focus:outline-none isolate"
     >
       {/* 山体层 + 文字层 (一起呼吸) */}
-      <motion.div
+      <div
         className="absolute bottom-0 w-full h-full z-10 pointer-events-none"
-        variants={mountainVariants}
-        animate={isBreathing ? 'breathing' : 'idle'}
-        style={{ transformOrigin: 'bottom center' }}
+        style={{
+          transform: isBreathing
+            ? 'translate3d(0, -8px, 0) scale(1.1)'
+            : 'translate3d(0, 0, 0) scale(0.88)',
+          transition: 'transform 3s cubic-bezier(0.45, 0, 0.55, 1)',
+          willChange: 'transform',
+          transformOrigin: 'bottom center'
+        }}
       >
         {/* 文字层 (山顶位置，带光晕) */}
         <div
@@ -133,7 +124,7 @@ export const MountainCard = ({ artist, onClick, index, isBreathing }: MountainCa
             <path d={mountainPath} fill={`url(#grad-${artist.id})`} filter="url(#ink-wash)" />
           </svg>
         </div>
-      </motion.div>
-    </motion.button>
+      </div>
+    </button>
   )
 }
